@@ -237,16 +237,7 @@ SpeedKMpH BicycleModel::GetSpeed(FeatureTypes const & types, SpeedParams const &
 
 bool BicycleModel::IsOneWay(FeatureTypes const & types) const
 {
-  if (IsBicycleOnedir(types))
-    return true;
-
-  if (IsBicycleBidir(types))
-    return false;
-
-  if (m_livingStType != 0 && types.Has(m_livingStType))
-    return false;
-
-  return VehicleModel::IsOneWay(types);
+  return false;  // Bicycles always allowed in both directions.
 }
 
 SpeedKMpH const & BicycleModel::GetOffroadSpeed() const

@@ -87,34 +87,8 @@ public class PlacePageWikipediaFragment extends Fragment implements Observer<Map
 
   private void updateViews()
   {
-    // There are two sources of wiki info in OrganicMaps:
-    // wiki links from OpenStreetMaps, and wiki pages explicitly parsed into OrganicMaps.
-    // This part hides the WikiArticleView if the wiki page has not been parsed.
-    if (TextUtils.isEmpty(mMapObject.getWikiArticle()))
-      UiUtils.hide(mWikiArticleViewContainer);
-    else
-    {
-      UiUtils.show(mWikiArticleViewContainer);
-      mWikiArticleView.setText(getShortWikiArticle());
-      final String wikiArticleString = mWikiArticleView.getText().toString();
-      mWikiArticleView.setOnLongClickListener((v) -> {
-        PlacePageUtils.copyToClipboard(requireContext(), mFrame, wikiArticleString);
-        return true;
-      });
-    }
-
-    final String wikipediaLink = mMapObject.getMetadata(Metadata.MetadataType.FMD_WIKIPEDIA);
-    if (TextUtils.isEmpty(wikipediaLink))
-      UiUtils.hide(mWiki);
-    else
-    {
-      UiUtils.show(mWiki);
-      mWiki.setOnClickListener((v) -> Utils.openUrl(requireContext(), wikipediaLink));
-      mWiki.setOnLongClickListener((v) -> {
-        PlacePageUtils.copyToClipboard(requireContext(), mFrame, wikipediaLink);
-        return true;
-      });
-    }
+    UiUtils.hide(mWikiArticleViewContainer);
+    UiUtils.hide(mWiki);
   }
 
   @Override

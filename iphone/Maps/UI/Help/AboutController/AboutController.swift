@@ -208,8 +208,7 @@ private extension AboutController {
     }
     stackView.addArrangedSubviewWithSeparator(osmView)
     stackView.addArrangedSubviewWithSeparator(infoTableView)
-    stackView.addArrangedSubviewWithSeparator(socialMediaHeaderLabel)
-    stackView.addArrangedSubview(socialMediaCollectionView)
+    // Social media section disabled.
     stackView.addArrangedSubviewWithSeparator(termsOfUseAndPrivacyPolicyView)
   }
 
@@ -289,29 +288,7 @@ private extension AboutController {
   }
 
   func buildSocialMediaCollectionViewData() -> [SocialMediaCollectionViewCellModel] {
-    let socialMediaContent = SocialMedia.allCases
-    let data = socialMediaContent.map { [weak self] socialMedia in
-      return SocialMediaCollectionViewCellModel(image: socialMedia.image, didTapHandler: {
-        switch socialMedia {
-        case .telegram: fallthrough
-        case .github: fallthrough
-        case .reddit: fallthrough
-        case .matrix: fallthrough
-        case .fosstodon: fallthrough
-        case .facebook: fallthrough
-        case .twitter: fallthrough
-        case .instagram: fallthrough
-        case .linkedin: fallthrough
-        case .tiktok: fallthrough
-        case .threads: fallthrough
-        case .bluesky:
-          self?.openUrl(socialMedia.link, externally: true)
-        case .organicMapsEmail:
-          MailComposer.sendEmail(toRecipients: [socialMedia.link])
-        }
-      })
-    }
-    return data
+    return []
   }
 
   // Returns a human-readable maps data version.

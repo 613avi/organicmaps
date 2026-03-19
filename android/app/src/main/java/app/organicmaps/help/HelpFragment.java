@@ -20,6 +20,7 @@ import app.organicmaps.sdk.util.Constants;
 import app.organicmaps.sdk.util.DateUtils;
 import app.organicmaps.util.Graphics;
 import app.organicmaps.util.SharingUtils;
+import app.organicmaps.util.UiUtils;
 import app.organicmaps.util.Utils;
 import app.organicmaps.util.WindowInsetUtils.ScrollableContentInsetsListener;
 import app.organicmaps.widget.DonationView;
@@ -56,13 +57,10 @@ public class HelpFragment extends BaseMwmFragment implements View.OnClickListene
     setupItem(R.id.news, true, root);
     setupItem(R.id.web, true, root);
     setupItem(R.id.email, true, root);
-    setupItem(R.id.github, true, root);
-    setupItem(R.id.telegram, false, root);
-    setupItem(R.id.instagram, false, root);
-    setupItem(R.id.facebook, false, root);
-    setupItem(R.id.twitter, true, root);
-    setupItem(R.id.matrix, true, root);
-    setupItem(R.id.mastodon, false, root);
+    UiUtils.hide(root.findViewById(R.id.github), root.findViewById(R.id.telegram),
+                 root.findViewById(R.id.instagram), root.findViewById(R.id.facebook),
+                 root.findViewById(R.id.twitter), root.findViewById(R.id.matrix),
+                 root.findViewById(R.id.mastodon));
     setupItem(R.id.openstreetmap, true, root);
     setupItem(R.id.faq, true, root);
     setupItem(R.id.report, isLandscape, root);
@@ -118,20 +116,6 @@ public class HelpFragment extends BaseMwmFragment implements View.OnClickListene
       Utils.openUrl(requireActivity(), getResources().getString(R.string.translated_om_site_url) + "news/");
     else if (id == R.id.email)
       Utils.sendTo(requireContext(), BuildConfig.SUPPORT_MAIL, "Organic Maps");
-    else if (id == R.id.github)
-      Utils.openUrl(requireActivity(), Constants.Url.GITHUB);
-    else if (id == R.id.telegram)
-      Utils.openUrl(requireActivity(), getString(R.string.telegram_url));
-    else if (id == R.id.instagram)
-      Utils.openUrl(requireActivity(), getString(R.string.instagram_url));
-    else if (id == R.id.facebook)
-      Utils.showFacebookPage(requireActivity());
-    else if (id == R.id.twitter)
-      Utils.openUrl(requireActivity(), Constants.Url.TWITTER);
-    else if (id == R.id.matrix)
-      Utils.openUrl(requireActivity(), Constants.Url.MATRIX);
-    else if (id == R.id.mastodon)
-      Utils.openUrl(requireActivity(), Constants.Url.MASTODON);
     else if (id == R.id.openstreetmap)
       Utils.openUrl(requireActivity(), getString(R.string.osm_wiki_about_url));
     else if (id == R.id.faq)

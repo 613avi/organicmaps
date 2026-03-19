@@ -455,10 +455,8 @@ public class PlacePageView extends Fragment
 
   private void updateProductsView()
   {
-    var hasProductsEntry = hasProductsEntry();
-
-    updateViewFragment(PlacePageProductsFragment.class, PRODUCTS_FRAGMENT_TAG, R.id.place_page_products_fragment,
-                       hasProductsEntry);
+    // Products (ads) disabled.
+    updateViewFragment(PlacePageProductsFragment.class, PRODUCTS_FRAGMENT_TAG, R.id.place_page_products_fragment, false);
   }
 
   private void setTextAndColorizeSubtitle()
@@ -733,12 +731,7 @@ public class PlacePageView extends Fragment
     }
     else
     {
-      UiUtils.showIf(Editor.nativeShouldShowEditPlace(), mEditPlace);
-      UiUtils.showIf(Editor.nativeShouldShowAddBusiness(), mAddOrganisation);
-      UiUtils.showIf(Editor.nativeShouldShowAddPlace(), mAddPlace);
-      mEditPlace.setEnabled(Editor.nativeCanEditPlace());
-      mAddOrganisation.setEnabled(Editor.nativeCanEditPlace());
-      mAddPlace.setEnabled(Editor.nativeCanEditPlace());
+      UiUtils.hide(mEditPlace, mAddOrganisation, mAddPlace);
       TextView mTvEditPlace = mEditPlace.findViewById(R.id.tv__editor);
       TextView mTvAddBusiness = mAddPlace.findViewById(R.id.tv__editor);
       TextView mTvAddPlace = mAddPlace.findViewById(R.id.tv__editor);

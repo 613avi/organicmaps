@@ -3398,13 +3398,7 @@ void Framework::FillDescriptions(FeatureType & ft, place_page::Info & info) cons
   auto const deviceLang = StringUtf8Multilang::GetLangIndex(languages::GetCurrentMapLanguage());
   auto const langPriority = feature::GetDescriptionLangPriority(regionData, deviceLang);
 
-  std::string wikiDescription = m_descriptionsLoader->GetWikiDescription(ft.GetID(), langPriority);
-  if (!wikiDescription.empty())
-  {
-    info.SetWikiDescription(std::move(wikiDescription));
-    info.SetOpeningMode(m_routingManager.IsRoutingActive() ? place_page::OpeningMode::Preview
-                                                           : place_page::OpeningMode::PreviewPlus);
-  }
+  // Wikipedia descriptions disabled.
 
   std::string_view const osmDescriptionValue = ft.GetMetadata(feature::Metadata::FMD_DESCRIPTION);
   if (osmDescriptionValue.empty())

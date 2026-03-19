@@ -150,29 +150,7 @@ class PlacePageInfoViewController: UIViewController {
                                    })
     }
 
-    if let wikipedia = placePageInfoData.wikipedia {
-      wikipediaView = createInfoItem(L("read_in_wikipedia"),
-                                     icon: UIImage(resource: .icPlacepageWiki),
-                                     style: .link,
-                                     tapHandler: { [weak self] in
-                                       self?.delegate?.didPressWikipedia()
-                                     },
-                                     longPressHandler: { [weak self] in
-                                       self?.delegate?.didCopy(wikipedia)
-                                     })
-    }
-
-    if let wikimediaCommons = placePageInfoData.wikimediaCommons {
-      wikimediaCommonsView = createInfoItem(L("wikimedia_commons"),
-                                            icon: UIImage(resource: .icPlacepageWikimediaCommons),
-                                            style: .link,
-                                            tapHandler: { [weak self] in
-                                              self?.delegate?.didPressWikimediaCommons()
-                                            },
-                                            longPressHandler: { [weak self] in
-                                              self?.delegate?.didCopy(wikimediaCommons)
-                                            })
-    }
+    // Wikipedia and Wikimedia Commons links disabled.
 
     if let wifi = placePageInfoData.wifiAvailable {
       wifiView = createInfoItem(wifi, icon: UIImage(resource: .icPlacepageWifi))

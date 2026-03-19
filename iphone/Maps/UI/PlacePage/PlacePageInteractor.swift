@@ -223,10 +223,8 @@ extension PlacePageInteractor: PlacePageEditBookmarkOrTrackViewControllerDelegat
 extension PlacePageInteractor: ActionBarViewControllerDelegate {
   func actionBar(_: ActionBarViewController, didPressButton type: ActionBarButtonType) {
     switch type {
-    case .booking:
-      MWMPlacePageManagerHelper.book(placePageData)
-    case .bookingSearch:
-      MWMPlacePageManagerHelper.searchBookingHotels(placePageData)
+    case .booking: break
+    case .bookingSearch: break
     case .bookmark:
       if placePageData.bookmarkData != nil {
         MWMPlacePageManagerHelper.removeBookmark(placePageData)

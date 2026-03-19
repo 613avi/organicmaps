@@ -54,36 +54,17 @@ std::string_view MetadataBase::Set(uint8_t type, std::string value)
 
 string Metadata::ToWikiURL(std::string v)
 {
-  size_t const colon = v.find(':');
-  if (colon == string::npos)
-    return v;
-
-  EncodeWikiURL(colon, v);
-
-  // Trying to avoid redirects by constructing the right link.
-  // TODO: Wikipedia article could be opened in a user's language, but need
-  // generator level support to check for available article languages first.
-  return "https://" + v.substr(0, colon) + kBaseWikiUrl + v.substr(colon + 1);
+  return {};
 }
 
 std::string Metadata::GetWikiURL() const
 {
-  return ToWikiURL(string(Get(FMD_WIKIPEDIA)));
+  return {};
 }
 
 std::string Metadata::ToWikimediaCommonsURL(std::string v)
 {
-  if (v.empty())
-    return v;
-
-  EncodeWikiURL(0, v);
-
-  // Use the media viewer for single files
-  if (v.starts_with("File:"))
-    return kBaseCommonsUrl + v + "#/media/" + v;
-
-  // or standard if it's a category
-  return kBaseCommonsUrl + v;
+  return {};
 }
 
 void Metadata::EncodeWikiURL(size_t startIndex, std::string & url)

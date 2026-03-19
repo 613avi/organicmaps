@@ -18,6 +18,7 @@ import app.organicmaps.R;
 import app.organicmaps.sdk.Framework;
 import app.organicmaps.sdk.bookmarks.data.MapObject;
 import app.organicmaps.sdk.bookmarks.data.Metadata;
+import app.organicmaps.util.UiUtils;
 import app.organicmaps.util.Utils;
 import app.organicmaps.widget.placepage.PlacePageUtils;
 import app.organicmaps.widget.placepage.PlacePageViewModel;
@@ -185,10 +186,7 @@ public class PlacePageLinksFragment extends Fragment implements Observer<MapObje
     refreshMetadataOrHide(mMapObject.getWebsiteUrl(true /* strip */, Metadata.MetadataType.FMD_WEBSITE_MENU),
                           mWebsiteMenu, mTvWebsiteMenuSubsite);
 
-    String wikimedia_commons = mMapObject.getMetadata(Metadata.MetadataType.FMD_WIKIMEDIA_COMMONS);
-    String wikimedia_commons_text =
-        TextUtils.isEmpty(wikimedia_commons) ? "" : getResources().getString(R.string.wikimedia_commons);
-    refreshMetadataOrHide(wikimedia_commons_text, mWikimedia, mTvWikimedia);
+    UiUtils.hide(mWikimedia);
     refreshMetadataOrHide(mMapObject.getMetadata(Metadata.MetadataType.FMD_EMAIL), mEmail, mTvEmail);
 
     final String facebook = mMapObject.getMetadata(Metadata.MetadataType.FMD_CONTACT_FACEBOOK);
