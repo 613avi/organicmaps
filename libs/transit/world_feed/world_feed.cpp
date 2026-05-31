@@ -29,7 +29,10 @@ namespace
 static double constexpr kAvgTransitSpeedMpS = 11.1;
 // If count of corrupted shapes in feed exceeds this value we skip feed and don't save it. The shape
 // is corrupted if we cant't properly project all stops from the trip to its polyline.
-static size_t constexpr kMaxInvalidShapesCount = 5;
+// Raised from 5: a single large country-wide feed (e.g. Israel MoT) legitimately has a handful of
+// bad shapes among thousands; the strict default rejected the whole feed. Bad trips are still
+// skipped individually (see "Skip trips with corrupted shapes").
+static size_t constexpr kMaxInvalidShapesCount = 1000;
 
 ::transit::TransitId constexpr kInvalidLineId = std::numeric_limits<::transit::TransitId>::max();
 
