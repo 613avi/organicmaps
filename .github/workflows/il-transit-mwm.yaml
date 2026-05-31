@@ -219,7 +219,9 @@ jobs:
           ls -lh israel.osm.pbf
 
       - name: Install maps_generator python deps
-        run: pip3 install --break-system-packages -r tools/python/maps_generator/requirements_dev.txt
+        # requirements_dev.txt pulls tooling excluded from this fork (descriptions); install
+        # the actual third-party runtime deps directly.
+        run: pip3 install --break-system-packages filelock requests requests_file beautifulsoup4
 
       - name: Configure map_generator.ini
         # Point the generator at our local pbf, the built generator_tool, and the
@@ -249,7 +251,7 @@ jobs:
           cd tools/python
           python3 -m maps_generator \
             --countries="Israel,Jerusalem,Palestine" \
-            --skip="Coastline"
+            --skip="Coastline,Descriptions"
 
       - name: Collect and publish mwm files
         if: success()
