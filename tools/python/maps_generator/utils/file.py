@@ -71,10 +71,14 @@ def download_file(url: AnyStr, name: AnyStr, download_if_exists: bool = True):
 
     tmp_name = f"{name}__"
     os.makedirs(os.path.dirname(tmp_name), exist_ok=True)
+    # Disable compression: with content-encoding gzip, Content-Length is the compressed
+    # size while iter_content yields decompressed bytes, so the size check below would
+    # wrongly trigger a Range resume that fails to gzip-decode a partial response.
+    no_compression = {"Accept-Encoding": "identity"}
     with requests.Session() as session:
         session.mount("file://", FileAdapter())
         with open(tmp_name, "wb") as handle:
-            response = session.get(url, stream=True)
+            response = session.get(url, stream=True, headers=no_compression)
             file_length = None
             try:
                 file_length = int(response.headers["Content-Length"])
@@ -97,7 +101,7 @@ def download_file(url: AnyStr, name: AnyStr, download_if_exists: bool = True):
                 logger.warning(
                     f"Download interrupted. Resuming download from {url}: {current}/{file_length}."
                 )
-                headers = {"Range": f"bytes={current}-"}
+                headers = {"Range": f"bytes={current}-", **no_compression}
                 response = session.get(url, headers=headers, stream=True)
                 attempts -= 1
 
