@@ -132,12 +132,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Fail loudly if the converter produced nothing (e.g. feed rejected).
+          if [ -z "$(ls -A transit_json 2>/dev/null)" ]; then
+            echo "::error::transit_json is empty — gtfs_converter produced no output"
+            exit 1
+          fi
           tar czf israel-transit-json.tar.gz -C transit_json .
           gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
             gh release create "$RELEASE_TAG" --title "Israel transit (latest)" \
               --notes "Auto-updated weekly from MoT GTFS. See il-transit-mwm.yaml."
-          gh release upload "$RELEASE_TAG" \
-            israel-transit-json.tar.gz mapping.txt mapping_edges.txt --clobber
+          # Upload JSON + only the mapping files that are non-empty (empty -> HTTP 400).
+          assets="israel-transit-json.tar.gz"
+          for m in mapping.txt mapping_edges.txt; do
+            [ -s "$m" ] && assets="$assets $m"
+          done
+          gh release upload "$RELEASE_TAG" $assets --clobber
 
   # ---------------------------------------------------------------------------
   # Stage 2 — bake the transit JSON into Israel.mwm via maps_generator.
