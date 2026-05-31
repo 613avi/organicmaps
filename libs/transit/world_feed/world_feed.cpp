@@ -46,8 +46,12 @@ void AddToRegions(C & container, ID const & id, transit::Regions const & regions
 template <class C, class ID, class S>
 transit::Regions AddToRegions(C & container, S const & splitter, ID const & id, m2::PointD const & point)
 {
-  auto const & regions = splitter.GetAffiliations(point);
-  CHECK_LESS_OR_EQUAL(regions.size(), 1, ("Point", mercator::ToLatLon(point), "belongs to multiple regions:", regions));
+  auto regions = splitter.GetAffiliations(point);
+  // A point near overlapping borders (e.g. Israel / Palestine / Jerusalem) can fall into more than
+  // one region. The strict CHECK here aborted the whole feed; keep the first region to preserve the
+  // one-region-per-entity invariant instead.
+  if (regions.size() > 1)
+    regions.resize(1);
 
   AddToRegions(container, id, regions);
   return regions;
