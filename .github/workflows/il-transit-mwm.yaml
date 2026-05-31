@@ -213,12 +213,6 @@ jobs:
           name: israel-transit-json
           path: transit_json
 
-      - name: Download Israel OSM extract (Geofabrik)
-        run: |
-          curl -fSL --retry 3 -o israel.osm.pbf \
-            https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf
-          ls -lh israel.osm.pbf
-
       - name: Install maps_generator python deps
         # requirements_dev.txt pulls tooling excluded from this fork (descriptions); install
         # the actual third-party runtime deps directly.
@@ -240,8 +234,9 @@ jobs:
                             f"{key}: {val}", s, count=1, flags=re.M)
           s = setkey(s, "OMIM_PATH", ws)
           s = setkey(s, "BUILD_PATH", ws + "/build")
-          s = setkey(s, "PLANET_URL", "file://" + ws + "/israel.osm.pbf")
-          s = setkey(s, "PLANET_MD5_URL", "")
+          geofabrik = "https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf"
+          s = setkey(s, "PLANET_URL", geofabrik)
+          s = setkey(s, "PLANET_MD5_URL", geofabrik + ".md5")
           s = setkey(s, "TRANSIT_URL", "file://" + ws + "/transit_json")
           open(p, "w").write(s)
           print(s)
