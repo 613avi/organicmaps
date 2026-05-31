@@ -57,9 +57,16 @@ jobs:
         run: git submodule update --depth 1 --init --recursive --jobs=20
 
       - name: Install build dependencies
+        # Mirror the proven build-cmake.yaml recipe. We only build one target
+        # below, but configure needs the full Qt6 set (the version check at
+        # CMakeLists.txt:158 reads Qt6Widgets_VERSION).
         run: |
           sudo apt update -y
-          sudo apt install -y clang-19 ninja-build qt6-base-dev curl
+          sudo apt install -y \
+            clang-19 libgl1-mesa-dev libglvnd-dev libharfbuzz-dev \
+            libqt6svg6-dev libxcursor-dev libxi-dev libxinerama-dev \
+            libxrandr-dev ninja-build qt6-base-dev qt6-positioning-dev \
+            curl unzip
 
       - name: Configure repository
         run: ./configure.sh
@@ -69,7 +76,7 @@ jobs:
         with:
           key: il-transit-gtfs_converter
 
-      - name: Configure cmake (generator tools only, no GUI/tests)
+      - name: Configure cmake
         env:
           CC: clang-19
           CXX: clang++-19
@@ -78,8 +85,6 @@ jobs:
         run: |
           cmake . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DSKIP_QT_GUI=ON \
-            -DSKIP_TESTS=ON \
             -DCMAKE_UNITY_BUILD=ON
 
       - name: Build gtfs_converter
@@ -164,7 +169,11 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt update -y
-          sudo apt install -y clang-19 ninja-build qt6-base-dev curl python3 python3-pip
+          sudo apt install -y \
+            clang-19 libgl1-mesa-dev libglvnd-dev libharfbuzz-dev \
+            libqt6svg6-dev libxcursor-dev libxi-dev libxinerama-dev \
+            libxrandr-dev ninja-build qt6-base-dev qt6-positioning-dev \
+            curl unzip python3 python3-pip
 
       - name: Configure repository
         run: ./configure.sh
@@ -174,7 +183,7 @@ jobs:
         with:
           key: il-transit-generator_tool
 
-      - name: Configure cmake (generator tools only)
+      - name: Configure cmake
         env:
           CC: clang-19
           CXX: clang++-19
@@ -183,8 +192,6 @@ jobs:
         run: |
           cmake . -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DSKIP_QT_GUI=ON \
-            -DSKIP_TESTS=ON \
             -DCMAKE_UNITY_BUILD=ON
 
       - name: Build generator_tool
