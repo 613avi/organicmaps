@@ -249,6 +249,15 @@ jobs:
             --countries="Israel,Jerusalem,Palestine" \
             --skip="Coastline,Descriptions"
 
+      - name: Dump generator logs on failure
+        if: failure()
+        run: |
+          echo "===== generation.log ====="
+          find "$GITHUB_WORKSPACE/.." -name "generation.log" -exec tail -100 {} \; 2>/dev/null
+          echo "===== generator_tool stage logs ====="
+          find "$GITHUB_WORKSPACE/.." -path "*maps_build*logs*" -name "*.log" 2>/dev/null \
+            -exec sh -c 'echo "---- $1 ----"; tail -60 "$1"' _ {} \;
+
       - name: Collect and publish mwm files
         if: success()
         env:
