@@ -143,15 +143,19 @@ class GenTool:
         return c
 
     def get_build_version(self):
-        p = subprocess.Popen(
-            [self.name_executable, "--version"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=os.environ,
-        )
-        wait_and_raise_if_fail(p)
-        out, err = p.communicate()
-        return out.decode("utf-8").replace("\n", " ").strip()
+        # Informational only (used in a log line). Don't let a non-zero exit of
+        # `generator_tool --version` abort the whole generation.
+        try:
+            p = subprocess.Popen(
+                [self.name_executable, "--version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=os.environ,
+            )
+            out, err = p.communicate()
+            return out.decode("utf-8").replace("\n", " ").strip() or "unknown"
+        except Exception:
+            return "unknown"
 
     def _collect_cmd(self):
         options = ["".join(["--", k, "=", str(v)]) for k, v in self.options.items()]
