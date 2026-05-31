@@ -203,8 +203,9 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_UNITY_BUILD=ON
 
-      - name: Build generator_tool
-        run: ninja -C build generator_tool
+      - name: Build generator tools
+        # maps_generator needs all three (see tools/python/maps_generator/README setup).
+        run: ninja -C build generator_tool mwm_diff_tool world_roads_builder_tool
 
       - name: Fetch transit JSON from Stage 1
         uses: actions/download-artifact@v4
