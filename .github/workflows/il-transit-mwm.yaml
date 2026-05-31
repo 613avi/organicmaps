@@ -218,21 +218,46 @@ jobs:
             https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf
           ls -lh israel.osm.pbf
 
-      # TODO(first-run): wire maps_generator for a single country with the
-      # transit section. Requires a map_generator.ini with:
-      #   TRANSIT_URL: file://${{ github.workspace }}/transit_json
-      # and running tools/python/maps_generator with --countries="Israel".
-      # See docs/EXPERIMENTAL_PUBLIC_TRANSPORT_SUPPORT.md (steps 3).
-      - name: Generate Israel.mwm with transit (iterate)
-        run: |
-          echo "maps_generator single-country invocation goes here."
-          echo "See docs/EXPERIMENTAL_PUBLIC_TRANSPORT_SUPPORT.md and"
-          echo "tools/python/maps_generator/README. Marked for first-run tuning."
-          exit 1   # fail loudly until wired, so we don't publish a stale mwm
+      - name: Install maps_generator python deps
+        run: pip3 install --break-system-packages -r tools/python/maps_generator/requirements_dev.txt
 
-      - name: Publish Israel.mwm to permanent release
+      - name: Configure map_generator.ini
+        # Point the generator at our local pbf, the built generator_tool, and the
+        # transit JSON dir. USER_RESOURCE_PATH/MAIN_OUT_PATH resolve via OMIM_PATH.
+        run: |
+          cd tools/python/maps_generator
+          cp var/etc/map_generator.ini.default var/etc/map_generator.ini
+          python3 - "$GITHUB_WORKSPACE" <<'PY'
+          import re, sys
+          ws = sys.argv[1]
+          p = "var/etc/map_generator.ini"
+          s = open(p).read()
+          def setkey(s, key, val):
+              return re.sub(r"^[#\s]*" + re.escape(key) + r"\s*:.*$",
+                            f"{key}: {val}", s, count=1, flags=re.M)
+          s = setkey(s, "OMIM_PATH", ws)
+          s = setkey(s, "BUILD_PATH", ws + "/build")
+          s = setkey(s, "PLANET_URL", "file://" + ws + "/israel.osm.pbf")
+          s = setkey(s, "PLANET_MD5_URL", "")
+          s = setkey(s, "TRANSIT_URL", "file://" + ws + "/transit_json")
+          open(p, "w").write(s)
+          print(s)
+          PY
+
+      - name: Generate Israel maps with transit
+        run: |
+          cd tools/python
+          python3 -m maps_generator \
+            --countries="Israel,Jerusalem,Palestine" \
+            --skip="Coastline"
+
+      - name: Collect and publish mwm files
         if: success()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "$RELEASE_TAG" Israel.mwm --clobber
+          mwms=$(find "$GITHUB_WORKSPACE/.." -path "*maps_build*" -name "*.mwm" 2>/dev/null \
+                 | grep -iE "Israel|Jerusalem|Palestine" || true)
+          echo "Found mwm files:"; echo "$mwms"
+          [ -z "$mwms" ] && { echo "::error::no mwm produced"; exit 1; }
+          gh release upload "$RELEASE_TAG" $mwms --clobber
