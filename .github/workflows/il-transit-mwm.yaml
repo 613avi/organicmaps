@@ -1,0 +1,222 @@
+name: Israel transit (GTFS) MWM
+
+# Weekly pipeline: download the Israeli Ministry of Transport GTFS feed,
+# convert it to Organic Maps transit JSON, and (stage 2) bake it into an
+# Israel.mwm that the app can side-load. Artifacts are published to a fixed
+# GitHub Release tag so the download URL is permanent.
+#
+# Permanent download URL (once the release exists):
+#   https://github.com/${{ github.repository }}/releases/download/il-transit-latest/Israel.mwm
+#
+# NOTE on routing model: this uses Organic Maps' CURRENT transit pipeline,
+# which is frequency/headway-based (not exact-departure). Exact-timetable
+# ("catch the 08:14") routing requires the C++ changes tracked separately
+# (converter + on-device schedule format + time-dependent router). This
+# workflow is "Phase 0": it proves build -> mwm -> side-load end to end and
+# delivers the weekly automation + permanent link.
+
+on:
+  workflow_dispatch: {}        # manual trigger
+  schedule:
+    - cron: '0 2 * * 0'        # every Sunday 02:00 UTC
+
+concurrency:
+  group: il-transit-mwm
+  cancel-in-progress: false
+
+permissions:
+  contents: write              # needed to publish release assets
+
+env:
+  GTFS_URL: https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip
+  RELEASE_TAG: il-transit-latest
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Stage 1 — build the converter, fetch GTFS, produce OM transit JSON.
+  # High confidence: this is the GTFS-specific heart of the pipeline.
+  # ---------------------------------------------------------------------------
+  convert:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Restore Boost submodule from cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            3party/boost
+            .git/modules/3party/boost
+          key: boost-submodule
+
+      - name: Parallel submodules checkout
+        run: git submodule update --depth 1 --init --recursive --jobs=20
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y clang-19 ninja-build qt6-base-dev curl
+
+      - name: Configure repository
+        run: ./configure.sh
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: il-transit-gtfs_converter
+
+      - name: Configure cmake (generator tools only, no GUI/tests)
+        env:
+          CC: clang-19
+          CXX: clang++-19
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        run: |
+          cmake . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSKIP_QT_GUI=ON \
+            -DSKIP_TESTS=ON \
+            -DCMAKE_UNITY_BUILD=ON
+
+      - name: Build gtfs_converter
+        run: ninja -C build gtfs_converter
+
+      - name: Download Israeli GTFS feed
+        # The MoT endpoint serves the zip only on GET (HEAD returns an error page).
+        run: |
+          mkdir -p feeds/israel
+          curl -fSL --retry 3 -o feeds/israel/gtfs.zip "$GTFS_URL"
+          unzip -o feeds/israel/gtfs.zip -d feeds/israel
+          rm feeds/israel/gtfs.zip
+          ls -lh feeds/israel
+
+      - name: Restore ID-mapping files from release (consistency across runs)
+        # CRITICAL: gtfs_converter assigns stable transit-entity IDs only if the
+        # mapping files are reused. Without this, routing across map versions breaks.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$RELEASE_TAG" \
+            --pattern 'mapping*.txt' --dir . 2>/dev/null || \
+            echo "No previous mapping files (first run) — they will be created."
+          touch mapping.txt mapping_edges.txt
+
+      - name: Convert GTFS -> Organic Maps transit JSON
+        run: |
+          mkdir -p transit_json
+          ./build/gtfs_converter \
+            --path_gtfs_feeds=feeds \
+            --path_mapping=mapping.txt \
+            --path_mapping_edges=mapping_edges.txt \
+            --path_json=transit_json \
+            --path_resources=data
+          echo "Produced JSON:"; ls -lh transit_json
+
+      - name: Upload transit JSON artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: israel-transit-json
+          path: transit_json
+          retention-days: 14
+
+      - name: Publish JSON + mapping files to permanent release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tar czf israel-transit-json.tar.gz -C transit_json .
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" --title "Israel transit (latest)" \
+              --notes "Auto-updated weekly from MoT GTFS. See il-transit-mwm.yaml."
+          gh release upload "$RELEASE_TAG" \
+            israel-transit-json.tar.gz mapping.txt mapping_edges.txt --clobber
+
+  # ---------------------------------------------------------------------------
+  # Stage 2 — bake the transit JSON into Israel.mwm via maps_generator.
+  # NOTE: maps_generator single-country setup needs first-run iteration
+  # (region config, borders, coastline handling). Kept separate so Stage 1
+  # delivers value even while this is tuned.
+  # ---------------------------------------------------------------------------
+  build-map:
+    needs: convert
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+
+      - name: Checkout sources
+        uses: actions/checkout@v6
+
+      - name: Restore Boost submodule from cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            3party/boost
+            .git/modules/3party/boost
+          key: boost-submodule
+
+      - name: Parallel submodules checkout
+        run: git submodule update --depth 1 --init --recursive --jobs=20
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update -y
+          sudo apt install -y clang-19 ninja-build qt6-base-dev curl python3 python3-pip
+
+      - name: Configure repository
+        run: ./configure.sh
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: il-transit-generator_tool
+
+      - name: Configure cmake (generator tools only)
+        env:
+          CC: clang-19
+          CXX: clang++-19
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        run: |
+          cmake . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSKIP_QT_GUI=ON \
+            -DSKIP_TESTS=ON \
+            -DCMAKE_UNITY_BUILD=ON
+
+      - name: Build generator_tool
+        run: ninja -C build generator_tool
+
+      - name: Fetch transit JSON from Stage 1
+        uses: actions/download-artifact@v4
+        with:
+          name: israel-transit-json
+          path: transit_json
+
+      - name: Download Israel OSM extract (Geofabrik)
+        run: |
+          curl -fSL --retry 3 -o israel.osm.pbf \
+            https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf
+          ls -lh israel.osm.pbf
+
+      # TODO(first-run): wire maps_generator for a single country with the
+      # transit section. Requires a map_generator.ini with:
+      #   TRANSIT_URL: file://${{ github.workspace }}/transit_json
+      # and running tools/python/maps_generator with --countries="Israel".
+      # See docs/EXPERIMENTAL_PUBLIC_TRANSPORT_SUPPORT.md (steps 3).
+      - name: Generate Israel.mwm with transit (iterate)
+        run: |
+          echo "maps_generator single-country invocation goes here."
+          echo "See docs/EXPERIMENTAL_PUBLIC_TRANSPORT_SUPPORT.md and"
+          echo "tools/python/maps_generator/README. Marked for first-run tuning."
+          exit 1   # fail loudly until wired, so we don't publish a stale mwm
+
+      - name: Publish Israel.mwm to permanent release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "$RELEASE_TAG" Israel.mwm --clobber
