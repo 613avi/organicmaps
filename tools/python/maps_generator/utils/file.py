@@ -65,6 +65,10 @@ def download_file(url: AnyStr, name: AnyStr, download_if_exists: bool = True):
 
     if is_file_uri(url):
         # url uses 'file://' scheme
+        # Create the destination directory: when copying a directory tree (e.g. the
+        # per-region transit_from_gtfs/<Country>/ files) the nested dirs don't exist yet,
+        # and shutil.copy2 would fail silently inside the download thread pool.
+        os.makedirs(os.path.dirname(name), exist_ok=True)
         shutil.copy2(file_uri_to_path(url), name)
         logger.info(f"File {name} was copied from {url}.")
         return
