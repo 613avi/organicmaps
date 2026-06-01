@@ -245,6 +245,9 @@ jobs:
 
       - name: Generate Israel maps with transit
         run: |
+          # generator_tool writes settings here on startup; pre-create it to avoid a
+          # FileSystemException (and a race between parallel per-country processes).
+          mkdir -p "$HOME/.config/OMaps"
           cd tools/python
           python3 -m maps_generator \
             --countries="Israel,Jerusalem,Palestine" \
