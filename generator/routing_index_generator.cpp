@@ -366,21 +366,27 @@ void CalcCrossMwmTransitionsExperimental(string const & mwmFile, vector<m2::Regi
     auto const & stops = transitData.GetStops();
     auto const & edges = transitData.GetEdges();
 
-    auto const getStopIdPoint = [&stops](::transit::TransitId stopId)
+    auto const findStopPoint = [&stops](::transit::TransitId stopId, m2::PointD & point) -> bool
     {
       auto const it = find_if(stops.begin(), stops.end(),
                               [stopId](::transit::experimental::Stop const & stop) { return stop.GetId() == stopId; });
-
-      CHECK(it != stops.end(), ("stopId:", stopId, "is not found in stops. Size of stops:", stops.size()));
-      return it->GetPoint();
+      if (it == stops.end())
+        return false;
+      point = it->GetPoint();
+      return true;
     };
 
     // Index |i| is a zero based edge index. This zero based index should be increased with
     // |FakeFeatureIds::kTransitGraphFeaturesStart| by calling CrossMwmConnectorBuilder::ApplyNumerationOffset.
     for (auto const & e : edges)
     {
-      m2::PointD const & stop1Point = getStopIdPoint(e.GetStop1Id());
-      m2::PointD const & stop2Point = getStopIdPoint(e.GetStop2Id());
+      // An edge may reference a stop located in a neighbouring mwm (e.g. a single GTFS feed
+      // split across Israel/Jerusalem/Palestine). Such a stop is absent from the local stops
+      // set; skip the edge instead of aborting.
+      m2::PointD stop1Point;
+      m2::PointD stop2Point;
+      if (!findStopPoint(e.GetStop1Id(), stop1Point) || !findStopPoint(e.GetStop2Id(), stop2Point))
+        continue;
       bool const stop2In = m2::RegionsContain(borders, stop2Point);
       if (m2::RegionsContain(borders, stop1Point) == stop2In)
         continue;
