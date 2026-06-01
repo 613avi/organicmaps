@@ -237,7 +237,8 @@ jobs:
           geofabrik = "https://download.geofabrik.de/asia/israel-and-palestine-latest.osm.pbf"
           s = setkey(s, "PLANET_URL", geofabrik)
           s = setkey(s, "PLANET_MD5_URL", geofabrik + ".md5")
-          s = setkey(s, "TRANSIT_URL", "file://" + ws + "/transit_json")
+          # Trailing slash matters: file.py is_dir() treats it as a directory to list.
+          s = setkey(s, "TRANSIT_URL", "file://" + ws + "/transit_json/")
           open(p, "w").write(s)
           print(s)
           PY
