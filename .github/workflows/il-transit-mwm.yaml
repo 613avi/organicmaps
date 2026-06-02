@@ -253,14 +253,15 @@ jobs:
             --countries="Israel,Jerusalem,Palestine" \
             --skip="Coastline,Descriptions"
 
-      - name: Dump generator logs on failure
-        if: failure()
+      - name: Dump generator logs (always)
+        if: always()
         run: |
-          echo "===== generation.log ====="
-          find "$GITHUB_WORKSPACE/.." -name "generation.log" -exec tail -100 {} \; 2>/dev/null
-          echo "===== generator_tool stage logs ====="
+          echo "===== RoutingTransit logs (why Israel transit is empty) ====="
+          find "$GITHUB_WORKSPACE/.." -path "*maps_build*logs*" -iname "*RoutingTransit*" 2>/dev/null \
+            -exec sh -c 'echo "---- $1 ----"; cat "$1"' _ {} \;
+          echo "===== all stage logs (tail) ====="
           find "$GITHUB_WORKSPACE/.." -path "*maps_build*logs*" -name "*.log" 2>/dev/null \
-            -exec sh -c 'echo "---- $1 ----"; tail -60 "$1"' _ {} \;
+            -exec sh -c 'echo "---- $1 ----"; tail -40 "$1"' _ {} \;
 
       - name: Collect and publish mwm files
         if: success()
@@ -271,4 +272,8 @@ jobs:
                  | grep -iE "Israel|Jerusalem|Palestine" || true)
           echo "Found mwm files:"; echo "$mwms"
           [ -z "$mwms" ] && { echo "::error::no mwm produced"; exit 1; }
+          echo "=== transit section check (tag count per mwm) ==="
+          for m in $mwms; do
+            echo "$(basename "$m"): transit-tag occurrences = $(grep -aoc transit "$m" || echo 0)"
+          done
           gh release upload "$RELEASE_TAG" $mwms --clobber
