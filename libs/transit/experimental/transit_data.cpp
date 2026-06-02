@@ -390,7 +390,9 @@ void Read(base::Json const & obj, std::vector<Stop> & stops, OsmIdToFeatureIdsMa
   auto const & [osmId, featureId, id] = CalculateIds(obj, mapping);
 
   std::string title;
-  FromJSONObject(obj.get(), "title", title);
+  // Optional: some GTFS stops have no name. A missing title must not abort parsing of the
+  // whole stops file (it previously threw, leaving the country's transit section empty).
+  FromJSONObjectOptionalField(obj.get(), "title", title);
   TimeTable const timetable = GetTimeTableFromJson(obj.get());
   m2::PointD const point = GetPointFromJson(base::GetJSONObligatoryField(obj.get(), "point"));
   IdList const & transferIds = GetVectorFromJson<TransitId>(obj.get(), "transfer_ids", false /* obligatory */);
