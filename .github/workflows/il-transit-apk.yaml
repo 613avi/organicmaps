@@ -1,0 +1,67 @@
+name: Israel transit APK (Fdroid debug)
+
+# Builds a debug-signed Fdroid-flavor APK (no Google services) from this branch so the
+# Israel.mwm with the transit section can be tested on a device. Published to the same
+# fixed release tag for a permanent download URL.
+#   https://github.com/${{ github.repository }}/releases/download/il-transit-latest/<apk>
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+env:
+  JAVA_HOME: /usr/lib/jvm/temurin-17-jdk-amd64   # Java 17 for Android Gradle plugin
+  RELEASE_TAG: il-transit-latest
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install build tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build
+
+      - name: Checkout sources
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 200   # needed by the versioning script
+
+      - name: Restore Boost submodule from cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            3party/boost
+            .git/modules/3party/boost
+          key: boost-submodule
+
+      - name: Parallel submodules checkout
+        run: git submodule update --depth 1 --init --recursive --jobs=20
+
+      - name: Configure repository
+        run: ./configure.sh
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: il-transit-apk-fdroid
+
+      - name: Build Fdroid debug APK (arm64)
+        working-directory: android
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        run: ./gradlew -Parm64 assembleFdroidDebug
+
+      - name: Locate and publish APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(find android/app/build/outputs/apk -name "*fdroid*debug*.apk" | head -1)
+          echo "APK: $apk"
+          [ -z "$apk" ] && { echo "::error::no apk produced"; exit 1; }
+          cp "$apk" OrganicMaps-il-transit-fdroid-debug.apk
+          ls -lh OrganicMaps-il-transit-fdroid-debug.apk
+          gh release upload "$RELEASE_TAG" OrganicMaps-il-transit-fdroid-debug.apk --clobber
