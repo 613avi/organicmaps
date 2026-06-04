@@ -1,0 +1,51 @@
+name: Israel official maps (no transit)
+
+# Side task, independent of the transit project: mirror the ORIGINAL Organic Maps .mwm files
+# for Israel / Jerusalem / Palestine (no transit section) to a fixed release tag, refreshed weekly.
+# These are the official maps straight from the OM CDN.
+#   https://github.com/${{ github.repository }}/releases/download/il-official-maps/Israel.mwm
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 3 * * 1'   # every Monday 03:00 UTC
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: il-official-maps
+  CDN: https://cdn-us1.organicmaps.app/maps
+  GH_REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  mirror:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Resolve current data version
+        id: ver
+        # The data version the app/CDN currently use is the "v" field of data/countries.txt.
+        run: |
+          v=$(gh api "repos/${GH_REPO}/contents/data/countries.txt" --jq .content \
+                | base64 -d | grep -oE '"v" *: *[0-9]+' | head -1 | grep -oE '[0-9]+')
+          [ -z "$v" ] && { echo "::error::could not resolve data version"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Data version: $v"
+
+      - name: Download official MWM (Israel, Jerusalem, Palestine)
+        run: |
+          v="${{ steps.ver.outputs.version }}"
+          for c in Israel Jerusalem Palestine; do
+            echo "Downloading $c.mwm (version $v) ..."
+            curl -fSL --retry 3 -o "$c.mwm" "$CDN/$v/$c.mwm"
+            ls -lh "$c.mwm"
+          done
+
+      - name: Publish to permanent release
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || \
+            gh release create "$RELEASE_TAG" \
+              --title "Israel official maps (no transit)" \
+              --notes "Official Organic Maps MWM for Israel, Jerusalem, Palestine (no transit). Auto-updated weekly from the OM CDN."
+          gh release upload "$RELEASE_TAG" Israel.mwm Jerusalem.mwm Palestine.mwm --clobber
