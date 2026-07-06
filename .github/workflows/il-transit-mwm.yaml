@@ -126,7 +126,10 @@ jobs:
         with:
           name: israel-transit-json
           path: transit_json
-          retention-days: 14
+          # Intermediate handoff to Stage 2 only; the permanent copy lives in the
+          # GitHub Release below, so expire fast to avoid Actions storage buildup.
+          retention-days: 1
+          overwrite: true
 
       - name: Publish JSON + mapping files to permanent release
         env:
